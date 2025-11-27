@@ -219,12 +219,11 @@ std::vector<uParticle> bremRecon( std::vector<uParticle> input,
                                   const float minZ,
                                   const float maxZ )
 {
-  std::vector<uMCParticle> bremPhotons;
-  std::vector<uMCVertex> bremPhotonVertices;
-  std::vector<int> bremPhotonMotherMCID;
+  std::vector<uMCParticle> bremPhotons = {};
+  std::vector<uMCVertex> bremPhotonVertices = {};
+  std::vector<int> bremPhotonMotherMCID = {};
   std::vector<int>::iterator photonIndex;
   int electron_MCID;
-  bool foundEveryPhoton;
   ROOT::Math::XYZTVector p_new;
   int e_charge;
   uMCParticle photonToAdd;
@@ -243,23 +242,19 @@ std::vector<uParticle> bremRecon( std::vector<uParticle> input,
 
   for( int i=0; i<input.size(); i++) {
     electron_MCID = input[i].mcParticleIndex;
-    photonIndex = bremPhotonMotherMCID.begin();
+    photonIndex = find(bremPhotonMotherMCID.begin(), bremPhotonMotherMCID.end(), electron_MCID);
 
-    while (photonIndex != bremPhotonMotherMCID.end()) {
+    while (photonIndex < bremPhotonMotherMCID.end() && photonIndex >= bremPhotonMotherMCID.begin()) {
+      photonToAdd = bremPhotons[distance(bremPhotonMotherMCID.begin(), photonIndex)];
+      p_new = photonToAdd.p4() + input[i].p4();
+      e_charge = input[i].charge();
+      input[i].firstState.tx = p_new.x() / p_new.z();
+      input[i].firstState.ty = p_new.y() / p_new.z();
+      input[i].firstState.qop = 1 / p_new.P();
+      input[i].firstState.charge = e_charge;
+
+      *photonIndex = -2; //default value for motherID of MCparticle with no mother is -1, so should set this to something else
       photonIndex = find(bremPhotonMotherMCID.begin(), bremPhotonMotherMCID.end(), electron_MCID);
-
-      if (photonIndex != bremPhotonMotherMCID.end()){
-        photonToAdd = bremPhotons[distance(bremPhotonMotherMCID.begin(), photonIndex)];
-        p_new = photonToAdd.p4() + input[i].p4();
-        e_charge = input[i].charge();
-
-        input[i].firstState.tx = p_new.x() / p_new.z();
-        input[i].firstState.ty = p_new.y() / p_new.z();
-        input[i].firstState.qop = 1 / p_new.P();
-        input[i].firstState.charge = e_charge;
-
-        *photonIndex = -1;
-      }
     }
   }
 
